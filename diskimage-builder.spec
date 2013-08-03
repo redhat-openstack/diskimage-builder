@@ -4,7 +4,7 @@
 Name:		diskimage-builder
 Summary:	Image building tools for OpenStack
 Version:	0.0.1
-Release:	2%{?dist}
+Release:	3%{?dist}
 License:	ASL 2.0
 Group:		System Environment/Base
 URL:		https://launchpad.net/diskimage-builder
@@ -53,6 +53,9 @@ if ! visudo -c -f /etc/sudoers.d/img-build-sudoers; then
 fi
 
 %changelog
+* Sat Aug 03 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.0.1-3
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_20_Mass_Rebuild
+
 * Wed Jul 31 2013 Jeff Peeler <jpeeler@redhat.com> 0.0.1-2
 - rebased and dropped patches
 
