@@ -4,7 +4,7 @@
 Name:		diskimage-builder
 Summary:	Image building tools for OpenStack
 Version:	0.0.1
-Release:	3%{?dist}
+Release:	4%{?dist}
 License:	ASL 2.0
 Group:		System Environment/Base
 URL:		https://launchpad.net/diskimage-builder
@@ -35,6 +35,9 @@ install -p -D -m 440 %{_builddir}/%{name}-%{commit}/sudoers.d/* %{buildroot}%{_s
 install -p -D -m 644 %{_builddir}/%{name}-%{commit}/lib/* %{buildroot}%{_datadir}/%{name}/lib
 cp -vr %{_builddir}/%{name}-%{commit}/elements/ %{buildroot}%{_datadir}/%{name}
 
+# explicitly remove config-applier since it does a pip install
+rm -rf %{buildroot}%{_datadir}/%{name}/elements/config-applier
+
 %description
 Components of TripleO that are responsible for building disk images.
 
@@ -53,6 +56,9 @@ if ! visudo -c -f /etc/sudoers.d/img-build-sudoers; then
 fi
 
 %changelog
+* Tue Aug 13 2013 Jeff Peeler <jpeeler@redhat.com> 0.0.1-4
+- removed config-applier element
+
 * Sat Aug 03 2013 Fedora Release Engineering <rel-eng@lists.fedoraproject.org> - 0.0.1-3
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_20_Mass_Rebuild
 
