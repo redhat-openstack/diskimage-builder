@@ -1,25 +1,25 @@
-%global commit 5b37036c88b93f452c2822262b7f4d953f1495da
-%global shortcommit %(c=%{commit}; echo ${c:0:7})
-
 Name:		diskimage-builder
 Summary:	Image building tools for OpenStack
 Version:	0.0.1
-Release:	4%{?dist}
+Release:	5%{?dist}
 License:	ASL 2.0
 Group:		System Environment/Base
 URL:		https://launchpad.net/diskimage-builder
-Source0:	https://github.com/stackforge/diskimage-builder/archive/%{commit}/%{name}-%{version}-%{shortcommit}.tar.gz
+Source0:	http://tarballs.openstack.org/diskimage-builder/%{name}-%{version}.tar.gz
 
 BuildArch: noarch
 BuildRequires: python2-devel
 BuildRequires: python-setuptools
+BuildRequires: python-d2to1
+BuildRequires: python-pbr
 
 Requires: kpartx
 Requires: qemu-img
 Requires: busybox
+Requires: curl
 
 %prep
-%setup -q -n %{name}-%{commit}
+%setup -q -n %{name}-%{version}
 
 %build
 %{__python} setup.py build
@@ -27,13 +27,11 @@ Requires: busybox
 %install
 %{__python} setup.py install -O1 --skip-build --root=%{buildroot}
 
-mkdir -p %{buildroot}%{_sysconfdir}/sudoers.d/
 mkdir -p %{buildroot}%{_datadir}/%{name}/lib
 mkdir -p %{buildroot}%{_datadir}/%{name}/elements
 
-install -p -D -m 440 %{_builddir}/%{name}-%{commit}/sudoers.d/* %{buildroot}%{_sysconfdir}/sudoers.d/
-install -p -D -m 644 %{_builddir}/%{name}-%{commit}/lib/* %{buildroot}%{_datadir}/%{name}/lib
-cp -vr %{_builddir}/%{name}-%{commit}/elements/ %{buildroot}%{_datadir}/%{name}
+install -p -D -m 644 lib/* %{buildroot}%{_datadir}/%{name}/lib
+cp -vr elements/ %{buildroot}%{_datadir}/%{name}
 
 # explicitly remove config-applier since it does a pip install
 rm -rf %{buildroot}%{_datadir}/%{name}/elements/config-applier
@@ -48,14 +46,15 @@ Components of TripleO that are responsible for building disk images.
 %{python_sitelib}/diskimage_builder*
 %{_datadir}/%{name}/lib
 %{_datadir}/%{name}/elements
-%config(noreplace) %attr(-,root,root) %{_sysconfdir}/sudoers.d/img-build-sudoers
-
-%verifyscript
-if ! visudo -c -f /etc/sudoers.d/img-build-sudoers; then
-  echo "Problem with img-build-sudoers file!"
-fi
 
 %changelog
+* Thu Sep 5 2013 Jeff Peeler <jpeeler@redhat.com> 0.0.1-5
+- rebase to a495079695e914fa7ec93292497bfc2471f41510
+- Source moved from stackforge to openstack
+- added curl requires
+- switched to pbr
+- remove all sudo related files as they are no longer used
+
 * Tue Aug 13 2013 Jeff Peeler <jpeeler@redhat.com> 0.0.1-4
 - removed config-applier element
 
