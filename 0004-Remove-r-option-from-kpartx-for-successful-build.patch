@@ -1,0 +1,29 @@
+From ccd7b86b606e678bf7281baff05c420b089c5d8f Mon Sep 17 00:00:00 2001
+From: Jeff Peeler <jpeeler@redhat.com>
+Date: Thu, 12 Sep 2013 17:56:30 -0400
+Subject: [PATCH 4/4] Remove -r option from kpartx for successful build
+
+This option does not exist on RHEL hosts and matches what is
+currently present in elements/rhel/root.d/10-rhel-cloud-image.
+
+Change-Id: I578233c1f37d035c67600fc60e7c4eb4ff75cbb3
+---
+ elements/fedora/root.d/10-fedora-cloud-image | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/elements/fedora/root.d/10-fedora-cloud-image b/elements/fedora/root.d/10-fedora-cloud-image
+index 693ea2d..6be721a 100755
+--- a/elements/fedora/root.d/10-fedora-cloud-image
++++ b/elements/fedora/root.d/10-fedora-cloud-image
+@@ -43,7 +43,7 @@ else
+         # NOTE: On F17 (parted-3.0-10.fc17.x86_64), partprobe of
+         #       /dev/loop0 does not create /dev/loop0p2, while kpartx at
+         #       least creates /dev/mapper/loop0p2.
+-        LOOPDEV=$(sudo kpartx -avr $WORKING/$RAW_FILE | awk "/loop[0-9]+$MAGIC_BIT/ {print \$3}")
++        LOOPDEV=$(sudo kpartx -av $WORKING/$RAW_FILE | awk "/loop[0-9]+$MAGIC_BIT/ {print \$3}")
+         if ! timeout 5 sh -c "while ! [ -e /dev/mapper/$LOOPDEV ]; do sleep 1; done"; then
+             echo "Error: Could not find /dev/mapper/$LOOPDEV"
+             exit 1
+-- 
+1.8.1.4
+

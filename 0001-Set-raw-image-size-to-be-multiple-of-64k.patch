@@ -1,0 +1,36 @@
+From e8c73cde4944492dfaab07e0bf1848486bba4f31 Mon Sep 17 00:00:00 2001
+From: Derek Higgins <derekh@redhat.com>
+Date: Sun, 8 Sep 2013 01:03:19 +0100
+Subject: [PATCH 1/4] Set raw image size to be multiple of 64k
+
+This works around a bug in qemu-img causing it to sometimes error if
+compressing a raw image that isn't a multiple of 64k (the qcow2
+cluster size).
+https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1180021
+http://lists.gnu.org/archive/html/qemu-devel/2013-04/msg02520.html
+
+Change-Id: I88f8bb5c6bf3606ef5856b085a284af6b8858dbb
+---
+ bin/disk-image-create | 6 +++++-
+ 1 file changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/bin/disk-image-create b/bin/disk-image-create
+index de14433..8b60760 100755
+--- a/bin/disk-image-create
++++ b/bin/disk-image-create
+@@ -125,7 +125,11 @@ if [ -n "$DIB_IMAGE_SIZE" ]; then
+   truncate -s${DIB_IMAGE_SIZE}G $TMP_IMAGE_PATH
+ else
+   # in kb*0.75 - underreport to get a slightly bigger device
+-  _NEEDED_SIZE=$(sudo du --block-size=750 -x -s ${TMP_BUILD_DIR}/built | awk ' { print $1 } ')
++  # Rounding down size so that is is a multiple of 64, works around a bug in
++  # qemu-img that may occur when compressing raw images that aren't a multiple
++  # of 64k. https://bugs.launchpad.net/ubuntu/+source/linux/+bug/1180021
++  _NEEDED_SIZE=$(sudo du --block-size=750 -x -s ${TMP_BUILD_DIR}/built | \
++                 awk ' { print $1  - ( $1 % 64) } ')
+   truncate -s${_NEEDED_SIZE}K $TMP_IMAGE_PATH
+   if [ "$FS_TYPE" = "ext4" ] ; then
+     # Very conservative to handle images being resized a lot
+-- 
+1.8.1.4
+

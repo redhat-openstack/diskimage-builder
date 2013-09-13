@@ -1,11 +1,16 @@
 Name:		diskimage-builder
 Summary:	Image building tools for OpenStack
 Version:	0.0.1
-Release:	5%{?dist}
+Release:	6%{?dist}
 License:	ASL 2.0
 Group:		System Environment/Base
 URL:		https://launchpad.net/diskimage-builder
 Source0:	http://tarballs.openstack.org/diskimage-builder/%{name}-%{version}.tar.gz
+
+Patch1: 0001-Set-raw-image-size-to-be-multiple-of-64k.patch
+Patch2: 0002-Add-package-mapping-for-default-jre.patch
+Patch3: 0003-Fixes-files-ordering-when-choosing-newest-image.patch
+Patch4: 0004-Remove-r-option-from-kpartx-for-successful-build.patch
 
 BuildArch: noarch
 BuildRequires: python2-devel
@@ -20,6 +25,10 @@ Requires: curl
 
 %prep
 %setup -q -n %{name}-%{version}
+%patch1 -p1
+%patch2 -p1
+%patch3 -p1
+%patch4 -p1
 
 %build
 %{__python} setup.py build
@@ -48,6 +57,9 @@ Components of TripleO that are responsible for building disk images.
 %{_datadir}/%{name}/elements
 
 %changelog
+* Fri Sep 13 2013 Jeff Peeler <jpeeler@redhat.com> 0.0.1-6
+- add patches to ccd7b86b606e678bf7281baff05c420b089c5d8f (fixes kpartx issue)
+
 * Thu Sep 5 2013 Jeff Peeler <jpeeler@redhat.com> 0.0.1-5
 - rebase to a495079695e914fa7ec93292497bfc2471f41510
 - Source moved from stackforge to openstack
