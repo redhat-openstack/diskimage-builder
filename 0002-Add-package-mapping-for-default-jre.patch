@@ -1,7 +1,7 @@
 From 43b96d91c2561312c09b6278d12b62d4f2ce887c Mon Sep 17 00:00:00 2001
 From: Matthew Farrellee <matt@redhat.com>
 Date: Tue, 10 Sep 2013 20:01:21 -0400
-Subject: [PATCH 2/4] Add package mapping for default-jre
+Subject: [PATCH 2/5] Add package mapping for default-jre
 
 Change-Id: Idffbc84ea2afaf2584c1bb79729c3e0cf52b851e
 ---

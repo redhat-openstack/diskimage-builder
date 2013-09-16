@@ -1,0 +1,70 @@
+From 9ba761ef27a3ac53588394d2ebbee59e6d7e5ed7 Mon Sep 17 00:00:00 2001
+From: Steve Baker <sbaker@redhat.com>
+Date: Sun, 15 Sep 2013 06:06:08 +1200
+Subject: [PATCH 5/5] Install fedora grub from cached rpm during finalise
+
+When uninstalling grub2, leave all its dependencies
+including grub2-tools installed to minimise the number of packages
+which need to be installed in the finalise stage.
+
+Since the yum cache is unmounted during finalise, installing
+grub2 in finalise is slowed by re-populating the yum cache.
+
+This change copies the grub2 rpm out of the yum cache so it can be installed
+from file during finalise.
+
+This should prevent disk becoming full during finalise on Fedora.
+
+Closes-Bug: #1217185
+
+Change-Id: If095adc4abb52a19a3aa0b1caebfb3e4d8f605ef
+---
+ elements/fedora/pre-install.d/15-fedora-remove-grub | 13 ++++++++++++-
+ elements/vm/finalise.d/51-bootloader                |  7 ++++++-
+ 2 files changed, 18 insertions(+), 2 deletions(-)
+
+diff --git a/elements/fedora/pre-install.d/15-fedora-remove-grub b/elements/fedora/pre-install.d/15-fedora-remove-grub
+index 8c83ab8..5541e76 100755
+--- a/elements/fedora/pre-install.d/15-fedora-remove-grub
++++ b/elements/fedora/pre-install.d/15-fedora-remove-grub
+@@ -2,7 +2,18 @@
+ 
+ set -e
+ 
+-yum remove -y grub2-tools
++yum remove -y grub2
++# Install grub2 dependencies to minimise packages installed during finalise.
++install-packages grub2-tools gettext os-prober system-logos
++
++# Ensure grub2 rpm is in the yum cache
++install-packages -d grub2
++
++# Copy grub2 rpm out of mounted yum cache for install during finalise
++mkdir /tmp/grub
++basearch=$(cat /etc/yum/vars/basearch)
++cp $(find /tmp/yum/$basearch -regex ".*/grub2-[0-9].*\.rpm") /tmp/grub
++echo "rpm -i /tmp/grub/*.rpm" > /tmp/grub/install
+ 
+ #GRUB_CFG=/boot/grub2/grub.cfg
+ 
+diff --git a/elements/vm/finalise.d/51-bootloader b/elements/vm/finalise.d/51-bootloader
+index 412ecd1..891dc39 100755
+--- a/elements/vm/finalise.d/51-bootloader
++++ b/elements/vm/finalise.d/51-bootloader
+@@ -53,7 +53,12 @@ _EOF_
+ 
+ function install_grub2 {
+ 
+-    install-packages grub-pc
++    # Check for offline installation of grub
++    if [ -f "/tmp/grub/install" ] ; then
++        source /tmp/grub/install
++    else
++        install-packages grub-pc
++    fi
+ 
+     # XXX: grub-probe on the nbd0/loop0 device returns nothing - workaround, manually
+     # specify modules. https://bugs.launchpad.net/ubuntu/+source/grub2/+bug/1073731
+-- 
+1.8.1.4
+

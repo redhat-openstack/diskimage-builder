@@ -1,7 +1,7 @@
 From e8c73cde4944492dfaab07e0bf1848486bba4f31 Mon Sep 17 00:00:00 2001
 From: Derek Higgins <derekh@redhat.com>
 Date: Sun, 8 Sep 2013 01:03:19 +0100
-Subject: [PATCH 1/4] Set raw image size to be multiple of 64k
+Subject: [PATCH 1/5] Set raw image size to be multiple of 64k
 
 This works around a bug in qemu-img causing it to sometimes error if
 compressing a raw image that isn't a multiple of 64k (the qcow2

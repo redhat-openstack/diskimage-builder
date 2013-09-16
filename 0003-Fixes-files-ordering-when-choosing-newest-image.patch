@@ -1,7 +1,7 @@
 From 0eaddbd214fa03f2a4a4041686c7ca62a21e4941 Mon Sep 17 00:00:00 2001
 From: Jan Provaznik <jprovazn@redhat.com>
 Date: Thu, 12 Sep 2013 11:26:57 +0200
-Subject: [PATCH 3/4] Fixes files ordering when choosing newest image
+Subject: [PATCH 3/5] Fixes files ordering when choosing newest image
 
 For example if there are following kernels in undercloud/overcloud
 image:

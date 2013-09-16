@@ -1,7 +1,7 @@
 From ccd7b86b606e678bf7281baff05c420b089c5d8f Mon Sep 17 00:00:00 2001
 From: Jeff Peeler <jpeeler@redhat.com>
 Date: Thu, 12 Sep 2013 17:56:30 -0400
-Subject: [PATCH 4/4] Remove -r option from kpartx for successful build
+Subject: [PATCH 4/5] Remove -r option from kpartx for successful build
 
 This option does not exist on RHEL hosts and matches what is
 currently present in elements/rhel/root.d/10-rhel-cloud-image.
