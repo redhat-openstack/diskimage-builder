@@ -1,17 +1,11 @@
 Name:		diskimage-builder
 Summary:	Image building tools for OpenStack
-Version:	0.0.1
-Release:	7%{?dist}
+Version:	0.0.5
+Release:	1%{?dist}
 License:	ASL 2.0
 Group:		System Environment/Base
 URL:		https://launchpad.net/diskimage-builder
 Source0:	http://tarballs.openstack.org/diskimage-builder/%{name}-%{version}.tar.gz
-
-Patch1: 0001-Set-raw-image-size-to-be-multiple-of-64k.patch
-Patch2: 0002-Add-package-mapping-for-default-jre.patch
-Patch3: 0003-Fixes-files-ordering-when-choosing-newest-image.patch
-Patch4: 0004-Remove-r-option-from-kpartx-for-successful-build.patch
-Patch5: 0005-Install-fedora-grub-from-cached-rpm-during-finalise.patch
 
 BuildArch: noarch
 BuildRequires: python2-devel
@@ -26,11 +20,6 @@ Requires: curl
 
 %prep
 %setup -q -n %{name}-%{version}
-%patch1 -p1
-%patch2 -p1
-%patch3 -p1
-%patch4 -p1
-%patch5 -p1
 
 %build
 %{__python} setup.py build
@@ -59,6 +48,9 @@ Components of TripleO that are responsible for building disk images.
 %{_datadir}/%{name}/elements
 
 %changelog
+* Wed Oct 9 2013 Jeff Peeler <jpeeler@redhat.com> 0.0.5-1
+- rebase to 0.0.5
+
 * Mon Sep 16 2013 Jeff Peeler <jpeeler@redhat.com> 0.0.1-7
 - add patch to allow proper Fedora image creation when using vm element
 
