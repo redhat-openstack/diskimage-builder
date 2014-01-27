@@ -1,7 +1,7 @@
 Name:		diskimage-builder
 Summary:	Image building tools for OpenStack
 Version:	0.1.5
-Release:	1%{?dist}
+Release:	2%{?dist}
 License:	ASL 2.0
 Group:		System Environment/Base
 URL:		https://launchpad.net/diskimage-builder
@@ -19,6 +19,8 @@ Requires: kpartx
 Requires: qemu-img
 Requires: busybox
 Requires: curl
+Requires: python-argparse
+Requires: python-babel
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -52,6 +54,9 @@ Components of TripleO that are responsible for building disk images.
 %{_datadir}/%{name}/elements
 
 %changelog
+* Mon Jan 27 2014 Jeff Peeler <jpeeler@redhat.com> 0.1.5-2
+- add new requires: python-argparse, python-babel
+
 * Mon Jan 27 2014 Jeff Peeler <jpeeler@redhat.com> 0.1.5-1
 - rebase to 0.1.5 + patch to fix RHEL 6.5 boot (rhbz#1057217)
 
