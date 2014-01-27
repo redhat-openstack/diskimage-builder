@@ -1,0 +1,31 @@
+From 2c8d4b227175a472e4bae20d3ccbc3abe5913f81 Mon Sep 17 00:00:00 2001
+From: Derek Higgins <derekh@redhat.com>
+Date: Thu, 23 Jan 2014 15:56:30 +0000
+Subject: [PATCH 1/6] Mount root filesystem readonly during boot
+
+If creating an image of a disto without grub2 extlinux is instead used,
+extlinux was being configured to mount the root filesystem as
+read/write which in turn causes e2fsck to fail to test the filesystem,
+on RHEL 6.5 this causes the boot process to fail.
+
+Change-Id: I07859e0df9a2bc1ddd8c5f2ed4509ba14312e140
+---
+ elements/vm/finalise.d/51-bootloader | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/elements/vm/finalise.d/51-bootloader b/elements/vm/finalise.d/51-bootloader
+index 11fd053..9cd6fad 100755
+--- a/elements/vm/finalise.d/51-bootloader
++++ b/elements/vm/finalise.d/51-bootloader
+@@ -49,7 +49,7 @@ DEFAULT linux
+ 
+ LABEL linux
+   KERNEL $kernel
+-  APPEND rw root=LABEL=cloudimg-rootfs
++  APPEND ro root=LABEL=cloudimg-rootfs
+   INITRD  $initrd
+ _EOF_
+ }
+-- 
+1.8.4.2
+
