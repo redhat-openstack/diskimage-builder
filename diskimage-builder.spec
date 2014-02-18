@@ -1,7 +1,7 @@
 Name:		diskimage-builder
 Summary:	Image building tools for OpenStack
 Version:	0.1.5
-Release:	2%{?dist}
+Release:	3%{?dist}
 License:	ASL 2.0
 Group:		System Environment/Base
 URL:		https://launchpad.net/diskimage-builder
@@ -21,6 +21,7 @@ Requires: busybox
 Requires: curl
 Requires: python-argparse
 Requires: python-babel
+Requires: tar
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -54,6 +55,9 @@ Components of TripleO that are responsible for building disk images.
 %{_datadir}/%{name}/elements
 
 %changelog
+* Tue Feb 18 2014 Jeff Peeler <jpeeler@redhat.com> 0.1.5-3
+- add tar requires (rhbz#1066680)
+
 * Mon Jan 27 2014 Jeff Peeler <jpeeler@redhat.com> 0.1.5-2
 - add new requires: python-argparse, python-babel
 
