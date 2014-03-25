@@ -1,13 +1,11 @@
 Name:		diskimage-builder
 Summary:	Image building tools for OpenStack
-Version:	0.1.5
-Release:	3%{?dist}
+Version:	0.1.9
+Release:	1%{?dist}
 License:	ASL 2.0
 Group:		System Environment/Base
 URL:		https://launchpad.net/diskimage-builder
 Source0:	http://tarballs.openstack.org/diskimage-builder/%{name}-%{version}.tar.gz
-
-Patch0001: 0001-Mount-root-filesystem-readonly-during-boot.patch
 
 BuildArch: noarch
 BuildRequires: python2-devel
@@ -25,8 +23,6 @@ Requires: tar
 
 %prep
 %setup -q -n %{name}-%{version}
-
-%patch0001 -p1
 
 %build
 %{__python} setup.py build
@@ -55,6 +51,9 @@ Components of TripleO that are responsible for building disk images.
 %{_datadir}/%{name}/elements
 
 %changelog
+* Wed Mar 26 2014 Jeff Peeler <jpeeler@redhat.com> 0.1.9-1
+- rebase to 0.1.9
+
 * Tue Feb 18 2014 Jeff Peeler <jpeeler@redhat.com> 0.1.5-3
 - add tar requires (rhbz#1066680)
 
