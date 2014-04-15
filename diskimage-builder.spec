@@ -1,11 +1,14 @@
 Name:		diskimage-builder
 Summary:	Image building tools for OpenStack
-Version:	0.1.9
+Version:	0.1.12
 Release:	1%{?dist}
 License:	ASL 2.0
 Group:		System Environment/Base
 URL:		https://launchpad.net/diskimage-builder
 Source0:	http://tarballs.openstack.org/diskimage-builder/%{name}-%{version}.tar.gz
+
+# https://review.openstack.org/#/c/87290
+Patch0001:	Add-mapping-for-mariadb-rdo-package.patch
 
 BuildArch: noarch
 BuildRequires: python2-devel
@@ -23,6 +26,8 @@ Requires: tar
 
 %prep
 %setup -q -n %{name}-%{version}
+
+%patch0001 -p1
 
 %build
 %{__python} setup.py build

@@ -1,0 +1,32 @@
+From 785fe45768b89bb978786aef73a5de68d23f58ee Mon Sep 17 00:00:00 2001
+From: Jan Provaznik <jprovazn@redhat.com>
+Date: Tue, 15 Apr 2014 03:37:33 -0400
+Subject: [PATCH] Add mapping for mariadb rdo package
+
+Mariadb package in RDO repository is mariadb-galera-server, but
+this name is mapped to MariaDB-Galera-server because of
+mariadb installed from mariadb.org.
+
+To avoid mapping conflicts mariadb-rdo uses virtual package name
+mariadb-rdo-galera-server which is mapped to mariadb-galera-server.
+
+Change-Id: Idf77d91876baeb81d89eb688808b892ece2bf19a
+---
+ elements/redhat-common/bin/map-packages | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/elements/redhat-common/bin/map-packages b/elements/redhat-common/bin/map-packages
+index a02b643..69bd086 100755
+--- a/elements/redhat-common/bin/map-packages
++++ b/elements/redhat-common/bin/map-packages
+@@ -50,6 +50,7 @@ package_map = {
+     'lm-sensors': 'lm_sensors',
+     'mariadb-galera-server': 'MariaDB-Galera-server',
+     'mariadb-client': 'MariaDB-client',
++    'mariadb-rdo-galera-server': 'mariadb-galera-server',
+     'mysql-client-5.5': 'mariadb',
+     'mysql-server-5.5': 'mariadb-server',
+     'nagios-plugins-basic': 'nagios-plugins-all',
+-- 
+1.9.0
+
