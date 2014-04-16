@@ -1,6 +1,6 @@
 Name:		diskimage-builder
 Summary:	Image building tools for OpenStack
-Version:	0.1.9
+Version:	0.1.13
 Release:	1%{?dist}
 License:	ASL 2.0
 Group:		System Environment/Base
@@ -51,6 +51,10 @@ Components of TripleO that are responsible for building disk images.
 %{_datadir}/%{name}/elements
 
 %changelog
+* Wed Apr 16 2014 Ben Nemec <bnemec@redhat.com> - 0.1.13-1
+- Update to 0.1.13
+- Remove mariadb-rdo-package patch that merged upstream
+
 * Wed Mar 26 2014 Jeff Peeler <jpeeler@redhat.com> 0.1.9-1
 - rebase to 0.1.9
 
