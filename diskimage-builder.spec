@@ -1,6 +1,6 @@
 Name:		diskimage-builder
 Summary:	Image building tools for OpenStack
-Version:	0.1.13
+Version:	0.1.15
 Release:	1%{?dist}
 License:	ASL 2.0
 Group:		System Environment/Base
@@ -20,6 +20,7 @@ Requires: curl
 Requires: python-argparse
 Requires: python-babel
 Requires: tar
+Requires: dib-utils
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -39,6 +40,10 @@ cp -vr elements/ %{buildroot}%{_datadir}/%{name}
 # explicitly remove config-applier since it does a pip install
 rm -rf %{buildroot}%{_datadir}/%{name}/elements/config-applier
 
+# This file is being split out of diskimage-builder, so remove it to
+# avoid conflicts with the new package.
+rm -f %{buildroot}%{_bindir}/dib-run-parts
+
 %description
 Components of TripleO that are responsible for building disk images.
 
@@ -51,6 +56,11 @@ Components of TripleO that are responsible for building disk images.
 %{_datadir}/%{name}/elements
 
 %changelog
+* Wed Apr 30 2014 Ben Nemec <bnemec@redhat.com> - 0.1.15-1
+- Update to 0.1.15
+- Remove dib-run-parts from this package
+- Add dependency on dib-utils (the new home of dib-run-parts)
+
 * Wed Apr 16 2014 Ben Nemec <bnemec@redhat.com> - 0.1.13-1
 - Update to 0.1.13
 - Remove mariadb-rdo-package patch that merged upstream
