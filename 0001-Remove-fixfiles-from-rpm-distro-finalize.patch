@@ -1,0 +1,29 @@
+From 57951981ec3c0fb4d1529ecece31d08ab0885b8e Mon Sep 17 00:00:00 2001
+From: Richard Su <rwsu@redhat.com>
+Date: Sun, 29 Jun 2014 18:45:08 -0700
+Subject: [PATCH] Remove fixfiles from rpm-distro finalize
+
+Running fixfiles after setfiles is redundant. setfiles
+already corrected the SELinux file security contexts.
+
+Change-Id: I48067f06968c5add48fa91a1496b9bf36944546c
+Closes-Bug: #1316241
+---
+ elements/rpm-distro/finalise.d/11-selinux-fixfiles-restore | 4 ----
+ 1 file changed, 4 deletions(-)
+
+diff --git a/elements/rpm-distro/finalise.d/11-selinux-fixfiles-restore b/elements/rpm-distro/finalise.d/11-selinux-fixfiles-restore
+index ed09474..d4cc744 100755
+--- a/elements/rpm-distro/finalise.d/11-selinux-fixfiles-restore
++++ b/elements/rpm-distro/finalise.d/11-selinux-fixfiles-restore
+@@ -10,10 +10,6 @@ if [ "$CONFIGURED_SELINUX" == "enforcing" ]; then
+     # instead of the sshd_t domain, making ssh connections fail with
+     # "Unable to get valid context for <user>" error message
+     setfiles /etc/selinux/targeted/contexts/files/file_contexts /
+-    FIXFILES_LOG=$(mktemp)
+-    fixfiles -l $FIXFILES_LOG restore
+-    cat $FIXFILES_LOG
+-    rm $FIXFILES_LOG
+ else
+     echo "Skipping SELinux relabel, since it is not Enforcing."
+     echo "To relabel once the image is running, use:"
