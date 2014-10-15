@@ -1,0 +1,41 @@
+From 79f145c06faee71d7c4c7e765302eedf38dabbcc Mon Sep 17 00:00:00 2001
+From: Ghe Rivero <ghe@rivero.io>
+Date: Tue, 7 Oct 2014 18:37:59 +0000
+Subject: [PATCH] Move install bin from rpm-distro to yum
+
+rpm-distro element was trying to install bin programs into the
+image but it doesn't provide any. Move that logic into the yum
+element which provides the install-packages bin.
+
+Change-Id: Id5339fc7ffbef6327fe41f50a3e39ab30b6d0320
+---
+ elements/rpm-distro/pre-install.d/01-rpm-distro-install-bin | 6 ------
+ elements/yum/pre-install.d/01-yum-install-bin               | 6 ++++++
+ 2 files changed, 6 insertions(+), 6 deletions(-)
+ delete mode 100755 elements/rpm-distro/pre-install.d/01-rpm-distro-install-bin
+ create mode 100755 elements/yum/pre-install.d/01-yum-install-bin
+
+diff --git a/elements/rpm-distro/pre-install.d/01-rpm-distro-install-bin b/elements/rpm-distro/pre-install.d/01-rpm-distro-install-bin
+deleted file mode 100755
+index 196b8da..0000000
+--- a/elements/rpm-distro/pre-install.d/01-rpm-distro-install-bin
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#!/bin/bash
+-
+-set -eu
+-set -o pipefail
+-
+-install -m 0755 -o root -g root $(dirname $0)/../bin/* /usr/local/bin
+diff --git a/elements/yum/pre-install.d/01-yum-install-bin b/elements/yum/pre-install.d/01-yum-install-bin
+new file mode 100755
+index 0000000..196b8da
+--- /dev/null
++++ b/elements/yum/pre-install.d/01-yum-install-bin
+@@ -0,0 +1,6 @@
++#!/bin/bash
++
++set -eu
++set -o pipefail
++
++install -m 0755 -o root -g root $(dirname $0)/../bin/* /usr/local/bin

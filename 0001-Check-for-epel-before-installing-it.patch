@@ -1,0 +1,29 @@
+From 5ce703ccc7cfce32f28bf3e88a2c2bb96ac27b92 Mon Sep 17 00:00:00 2001
+From: Ben Nemec <bnemec@redhat.com>
+Date: Thu, 9 Oct 2014 13:00:12 -0500
+Subject: [PATCH] Check for epel before installing it
+
+instack runs this script on a system where epel has already been
+installed, which causes the yum command to fail.  Only installing
+the epel-release rpm when it isn't already present addresses the
+issue.
+
+Change-Id: Ia179d7c7ed69ea5f785b5dcd16394c7663a145cc
+---
+ elements/epel/pre-install.d/05-rpm-epel-release | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/elements/epel/pre-install.d/05-rpm-epel-release b/elements/epel/pre-install.d/05-rpm-epel-release
+index ec4bbee..0c218a8 100755
+--- a/elements/epel/pre-install.d/05-rpm-epel-release
++++ b/elements/epel/pre-install.d/05-rpm-epel-release
+@@ -3,7 +3,7 @@ set -eu
+ set -o pipefail
+ 
+ if [[ "rhel7 centos7" =~ "$DISTRO_NAME" ]]; then
+-    yum install -y http://download.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-2.noarch.rpm
++    rpm -q epel-release || yum install -y http://download.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-2.noarch.rpm
+ elif [[ "rhel" =~ "$DISTRO_NAME" ]]; then
+-    yum install -y http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
++    rpm -q epel-release || yum install -y http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
+ fi

@@ -1,11 +1,14 @@
 Name:		diskimage-builder
 Summary:	Image building tools for OpenStack
 Version:	0.1.33
-Release:	1%{?dist}
+Release:	2%{?dist}
 License:	ASL 2.0
 Group:		System Environment/Base
 URL:		https://launchpad.net/diskimage-builder
 Source0:	http://tarballs.openstack.org/diskimage-builder/%{name}-%{version}.tar.gz
+
+Patch0001: 0001-Check-for-epel-before-installing-it.patch
+Patch0002: 0002-Move-install-bin-from-rpm-distro-to-yum.patch
 
 BuildArch: noarch
 BuildRequires: python2-devel
@@ -24,6 +27,9 @@ Requires: dib-utils
 
 %prep
 %setup -q -n %{name}-%{version}
+
+%patch0001 -p1
+%patch0002 -p1
 
 %build
 %{__python} setup.py build
@@ -56,6 +62,10 @@ Components of TripleO that are responsible for building disk images.
 %{_datadir}/%{name}/elements
 
 %changelog
+* Wed Oct 15 2014 James Slagle <jslagle@redhat.com> 0.1.33-2
+- Move install bin from rpm-distro to yum
+- Check for epel before installing it
+
 * Wed Oct 15 2014 James Slagle <jslagle@redhat.com> 0.1.33-1
 - Update to upstream 0.1.33
 
