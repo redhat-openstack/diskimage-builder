@@ -1,7 +1,7 @@
 Name:		diskimage-builder
 Summary:	Image building tools for OpenStack
 Version:	0.1.33
-Release:	3%{?dist}
+Release:	4%{?dist}
 License:	ASL 2.0
 Group:		System Environment/Base
 URL:		https://launchpad.net/diskimage-builder
@@ -9,6 +9,7 @@ Source0:	http://tarballs.openstack.org/diskimage-builder/%{name}-%{version}.tar.
 
 Patch0001: 0001-Check-for-epel-before-installing-it.patch
 Patch0002: 0002-Move-install-bin-from-rpm-distro-to-yum.patch
+Patch0003: 0003-svc-map-requires-PyYAML.patch
 
 BuildArch: noarch
 BuildRequires: python2-devel
@@ -30,6 +31,7 @@ Requires: dib-utils
 
 %patch0001 -p1
 %patch0002 -p1
+%patch0003 -p1
 
 %build
 %{__python} setup.py build
@@ -66,6 +68,9 @@ Components of TripleO that are responsible for building disk images.
 %{_datadir}/%{name}/elements
 
 %changelog
+* Fri Oct 17 2014 James Slagle <jslagle@redhat.com> 0.1.33-4
+- svc-map requires PyYAML
+
 * Fri Oct 17 2014 James Slagle <jslagle@redhat.com> 0.1.33-3
 - Make sure file added by patch is +x
 

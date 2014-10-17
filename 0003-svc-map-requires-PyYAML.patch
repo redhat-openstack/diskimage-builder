@@ -1,0 +1,21 @@
+From e5af5c6f8206d7a245e98bd79d3bbe0f43cc8b77 Mon Sep 17 00:00:00 2001
+From: James Slagle <jslagle@redhat.com>
+Date: Fri, 17 Oct 2014 11:46:18 -0400
+Subject: [PATCH] svc-map requires PyYAML
+
+svc-map requires PyYAML, so install it. It's not always installed on all base
+images.
+
+Change-Id: I7ce5325e8afa0047f67153baa1fc7d4a90196c88
+---
+ elements/svc-map/pre-install.d/package-installs-svc-map | 1 +
+ 1 file changed, 1 insertion(+)
+ create mode 100644 elements/svc-map/pre-install.d/package-installs-svc-map
+
+diff --git a/elements/svc-map/pre-install.d/package-installs-svc-map b/elements/svc-map/pre-install.d/package-installs-svc-map
+new file mode 100644
+index 0000000..5500f00
+--- /dev/null
++++ b/elements/svc-map/pre-install.d/package-installs-svc-map
+@@ -0,0 +1 @@
++PyYAML
