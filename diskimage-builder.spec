@@ -1,7 +1,7 @@
 Name:		diskimage-builder
 Summary:	Image building tools for OpenStack
 Version:	0.1.33
-Release:	2%{?dist}
+Release:	3%{?dist}
 License:	ASL 2.0
 Group:		System Environment/Base
 URL:		https://launchpad.net/diskimage-builder
@@ -50,6 +50,10 @@ rm -rf %{buildroot}%{_datadir}/%{name}/elements/config-applier
 # avoid conflicts with the new package.
 rm -f %{buildroot}%{_bindir}/dib-run-parts
 
+# Patch 0002-Move-install-bin-from-rpm-distro-to-yum.patch
+# creates a new file, but the perms are not set correctly when patch runs
+chmod +x %{buildroot}/%{_datadir}/%{name}/elements/yum/pre-install.d/01-yum-install-bin
+
 %description
 Components of TripleO that are responsible for building disk images.
 
@@ -62,6 +66,9 @@ Components of TripleO that are responsible for building disk images.
 %{_datadir}/%{name}/elements
 
 %changelog
+* Fri Oct 17 2014 James Slagle <jslagle@redhat.com> 0.1.33-3
+- Make sure file added by patch is +x
+
 * Wed Oct 15 2014 James Slagle <jslagle@redhat.com> 0.1.33-2
 - Move install bin from rpm-distro to yum
 - Check for epel before installing it
