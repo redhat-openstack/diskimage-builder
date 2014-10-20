@@ -1,4 +1,4 @@
-From e5af5c6f8206d7a245e98bd79d3bbe0f43cc8b77 Mon Sep 17 00:00:00 2001
+From 0d5d09eab8e26085af5cc290f62f8e65d0360965 Mon Sep 17 00:00:00 2001
 From: James Slagle <jslagle@redhat.com>
 Date: Fri, 17 Oct 2014 11:46:18 -0400
 Subject: [PATCH] svc-map requires PyYAML
