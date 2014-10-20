@@ -53,10 +53,10 @@ rm -f %{buildroot}%{_bindir}/dib-run-parts
 # Patch 0002-Move-install-bin-from-rpm-distro-to-yum.patch
 # creates a new file, but the perms are not set correctly when patch runs
 chmod +x %{buildroot}/%{_datadir}/%{name}/elements/yum/pre-install.d/01-yum-install-bin
-chmod +x %{buildroot}/%{_datadir}/${name}/elements/dracut-ramdisk/extra-data.d/scripts/module/deploy-cmdline.sh
-chmod +x %{buildroot}/%{_datadir}/${name}/elements/dracut-ramdisk/extra-data.d/scripts/module/module-setup.sh
-chmod +x %{buildroot}/%{_datadir}/${name}/elements/dracut-ramdisk/install.d/20-install-dracut-deps
-chmod +x %{buildroot}/%{_datadir}/${name}/elements/dracut-ramdisk/post-install.d/99-build-dracut-ramdisk
+chmod +x %{buildroot}/%{_datadir}/%{name}/elements/dracut-ramdisk/extra-data.d/scripts/module/deploy-cmdline.sh
+chmod +x %{buildroot}/%{_datadir}/%{name}/elements/dracut-ramdisk/extra-data.d/scripts/module/module-setup.sh
+chmod +x %{buildroot}/%{_datadir}/%{name}/elements/dracut-ramdisk/install.d/20-install-dracut-deps
+chmod +x %{buildroot}/%{_datadir}/%{name}/elements/dracut-ramdisk/post-install.d/99-build-dracut-ramdisk
 
 %description
 Components of TripleO that are responsible for building disk images.
