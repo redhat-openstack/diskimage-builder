@@ -1,0 +1,359 @@
+From 14c86f2e293321531fb36e0da7773096a12c311a Mon Sep 17 00:00:00 2001
+From: Ben Nemec <bnemec@redhat.com>
+Date: Fri, 26 Sep 2014 00:12:32 -0500
+Subject: [PATCH] Enable dracut deploy ramdisks
+
+The element builds dracut from source on Ubuntu because the
+Ubuntu dracut package is broken and very old, so it can't be
+installed properly and causes a number of other issues that
+are fixed by using a newer version of Dracut.
+
+This initial version should work in virtualized environments.
+Further validation of its suitability for real baremetal
+deployments will need to be done in the future, but this should
+be sufficient to enable that work.
+
+Regarding Dracut specifically, in order to limit the changes
+needed in the existing scripts this element continues to use a
+cut down version of the /init script that we were building for the
+existing ramdisk.  However, instead of running it as pid 0 it is
+run as a Dracut pre-mount hook.  This allows Dracut to set up all
+of the hardware and system bits, while falling early enough in the
+Dracut sequence to complete the deployment before Dracut would try
+to boot off the hard disk.
+
+bp tripleo-juno-dracut-ramdisks
+Change-Id: I144c8993fe040169f440bd4f7a428fdbe3d745cf
+---
+ bin/disk-image-create                              |  4 +-
+ elements/deploy-ironic/init.d/80-deploy-ironic     |  8 +--
+ elements/dracut-ramdisk/README.md                  |  5 ++
+ elements/dracut-ramdisk/element-deps               |  3 ++
+ .../environment.d/10-dracut-version.bash           |  2 +
+ .../extra-data.d/scripts/module/deploy-cmdline.sh  | 34 ++++++++++++
+ .../extra-data.d/scripts/module/module-setup.sh    | 17 ++++++
+ .../install.d/20-install-dracut-deps               | 24 +++++++++
+ elements/dracut-ramdisk/pkg-map                    | 15 ++++++
+ .../post-install.d/99-build-dracut-ramdisk         | 63 ++++++++++++++++++++++
+ elements/dracut-ramdisk/source-repository-dracut   |  1 +
+ lib/common-functions                               |  2 +-
+ lib/ramdisk-defaults                               |  1 +
+ lib/ramdisk-functions                              |  4 +-
+ 14 files changed, 177 insertions(+), 6 deletions(-)
+ create mode 100644 elements/dracut-ramdisk/README.md
+ create mode 100644 elements/dracut-ramdisk/element-deps
+ create mode 100644 elements/dracut-ramdisk/environment.d/10-dracut-version.bash
+ create mode 100755 elements/dracut-ramdisk/extra-data.d/scripts/module/deploy-cmdline.sh
+ create mode 100755 elements/dracut-ramdisk/extra-data.d/scripts/module/module-setup.sh
+ create mode 100755 elements/dracut-ramdisk/install.d/20-install-dracut-deps
+ create mode 100644 elements/dracut-ramdisk/pkg-map
+ create mode 100755 elements/dracut-ramdisk/post-install.d/99-build-dracut-ramdisk
+ create mode 100644 elements/dracut-ramdisk/source-repository-dracut
+
+diff --git a/bin/disk-image-create b/bin/disk-image-create
+index 7ea65c4..c38a200 100755
+--- a/bin/disk-image-create
++++ b/bin/disk-image-create
+@@ -63,6 +63,7 @@ function show_options () {
+     echo "    --qemu-img-options -- option flags to be passed directly to qemu-img."
+     echo "       Options need to be comma separated, and follow the key=value pattern."
+     echo "    --root-label label -- label for the root filesystem.  Defaults to 'cloudimg-rootfs'."
++    echo "    --ramdisk-element -- specify the main element to be used for building ramdisks."
+     if [ "$IS_RAMDISK" == "0" ]; then
+         echo "    -n skip the default inclusion of the 'base' element"
+         echo "    -p package[,package,package] -- list of packages to install in the image"
+@@ -87,7 +88,7 @@ function show_options () {
+ INSTALL_PACKAGES=""
+ COMPRESS_IMAGE="true"
+ DIB_ROOT_LABEL=""
+-TEMP=`getopt -o a:ho:t:xucnp: -l no-tmpfs,offline,help,min-tmpfs:,image-size:,image-cache:,max-online-resize:,qemu-img-options:,root-label: -n $SCRIPTNAME -- "$@"`
++TEMP=`getopt -o a:ho:t:xucnp: -l no-tmpfs,offline,help,min-tmpfs:,image-size:,image-cache:,max-online-resize:,qemu-img-options:,ramdisk-element:,root-label: -n $SCRIPTNAME -- "$@"`
+ if [ $? -ne 0 ] ; then echo "Terminating..." >&2 ; exit 1 ; fi
+ 
+ # Note the quotes around `$TEMP': they are essential!
+@@ -112,6 +113,7 @@ while true ; do
+         --offline) shift; export DIB_OFFLINE=1;;
+         --qemu-img-options) QEMU_IMG_OPTIONS=$2; shift 2;;
+         --root-label) export DIB_ROOT_LABEL=$2; shift 2;;
++        --ramdisk-element) RAMDISK_ELEMENT=$2; shift 2;;
+         --) shift ; break ;;
+         *) echo "Internal error!" ; exit 1 ;;
+     esac
+diff --git a/elements/deploy-ironic/init.d/80-deploy-ironic b/elements/deploy-ironic/init.d/80-deploy-ironic
+index f0ba49b..d52ccde 100644
+--- a/elements/deploy-ironic/init.d/80-deploy-ironic
++++ b/elements/deploy-ironic/init.d/80-deploy-ironic
+@@ -35,9 +35,11 @@ if [ "$BOOT_METHOD" = "$VMEDIA_BOOT_TAG" ]; then
+ else
+   TOKEN_FILE=token-$DEPLOYMENT_ID
+ 
+-  if tftp -r $TOKEN_FILE -g $BOOT_SERVER
+-    then TOKEN_HEADER="-H 'X-Auth-Token: $(cat $TOKEN_FILE)'"
+-    else TOKEN_HEADER=""
++  # Allow multiple versions of the tftp client
++  if tftp -r $TOKEN_FILE -g $BOOT_SERVER || tftp $BOOT_SERVER -c get $TOKEN_FILE; then
++      TOKEN_HEADER="-H 'X-Auth-Token: $(cat $TOKEN_FILE)'"
++  else
++      TOKEN_HEADER=""
+   fi
+ fi
+ 
+diff --git a/elements/dracut-ramdisk/README.md b/elements/dracut-ramdisk/README.md
+new file mode 100644
+index 0000000..c3f1918
+--- /dev/null
++++ b/elements/dracut-ramdisk/README.md
+@@ -0,0 +1,5 @@
++Build Dracut-based ramdisks
++
++This is an alternative to the `ramdisk` element that uses
++Dracut to provide the base system functionality instead of
++Busybox.
+diff --git a/elements/dracut-ramdisk/element-deps b/elements/dracut-ramdisk/element-deps
+new file mode 100644
+index 0000000..c07f413
+--- /dev/null
++++ b/elements/dracut-ramdisk/element-deps
+@@ -0,0 +1,3 @@
++pkg-map
++ramdisk-base
++source-repositories
+diff --git a/elements/dracut-ramdisk/environment.d/10-dracut-version.bash b/elements/dracut-ramdisk/environment.d/10-dracut-version.bash
+new file mode 100644
+index 0000000..5b752b6
+--- /dev/null
++++ b/elements/dracut-ramdisk/environment.d/10-dracut-version.bash
+@@ -0,0 +1,2 @@
++# Using 037 because that matches the current Fedora package
++export DRACUT_VERSION=037
+diff --git a/elements/dracut-ramdisk/extra-data.d/scripts/module/deploy-cmdline.sh b/elements/dracut-ramdisk/extra-data.d/scripts/module/deploy-cmdline.sh
+new file mode 100755
+index 0000000..7cd1432
+--- /dev/null
++++ b/elements/dracut-ramdisk/extra-data.d/scripts/module/deploy-cmdline.sh
+@@ -0,0 +1,34 @@
++#!/bin/bash
++
++# NOTE(bnemec): Dracut doesn't like it if we enable these
++# dib-lint: disable=setu sete setpipefail
++
++source /init-func
++
++find_target() {
++    local DISK=$(getarg disk)
++    local target_disk=
++    t=0
++    while ! target_disk=$(find_disk "$DISK"); do
++        if [ $t -eq 10 ]; then
++            break
++        fi
++        t=$(($t + 1))
++        sleep 1
++    done
++    echo $target_disk
++}
++root=$(find_target)
++
++if [ -n "$root" ]; then
++    rootok=1
++fi
++
++# Dracut doesn't correctly parse the ip argument passed to us.
++# Override /proc/cmdline to rewrite it in a way dracut can grok.
++sed 's/\(ip=\S\+\)/\1:::off/' /proc/cmdline > /run/cmdline
++# Map the existing "troubleshoot" kernel param to the Dracut equivalent.
++sed -i 's/troubleshoot=/rd.shell=/' /run/cmdline
++mount -n --bind -o ro /run/cmdline /proc/cmdline
++# Force Dracut to re-read the cmdline args
++CMDLINE=
+diff --git a/elements/dracut-ramdisk/extra-data.d/scripts/module/module-setup.sh b/elements/dracut-ramdisk/extra-data.d/scripts/module/module-setup.sh
+new file mode 100755
+index 0000000..694e8d4
+--- /dev/null
++++ b/elements/dracut-ramdisk/extra-data.d/scripts/module/module-setup.sh
+@@ -0,0 +1,17 @@
++#!/bin/bash
++
++# Dracut is bash too, and it doesn't play nicely with our usual sets
++# dib-lint: disable=setu sete setpipefail
++
++check() {
++    return 0
++}
++
++depends() {
++    return 0
++}
++
++install() {
++    inst_hook cmdline 80 "$moddir/deploy-cmdline.sh"
++    inst_hook pre-mount 50 "$moddir/init.sh"
++}
+diff --git a/elements/dracut-ramdisk/install.d/20-install-dracut-deps b/elements/dracut-ramdisk/install.d/20-install-dracut-deps
+new file mode 100755
+index 0000000..8621d89
+--- /dev/null
++++ b/elements/dracut-ramdisk/install.d/20-install-dracut-deps
+@@ -0,0 +1,24 @@
++#!/bin/bash
++
++set -eux
++set -o pipefail
++
++DRACUT_NETWORK="dracut-network"
++if [ 'ubuntu' = "$DISTRO_NAME" ]; then
++    DRACUT_NETWORK=
++    # Install Dracut from source because the packaged version is
++    # broken and old.  For Dracut builds we throw away the chroot
++    # anyway so it won't matter if we've installed some build deps.
++    install-packages build-essential arping
++    pushd /tmp
++    tar xJvf dracut.tar.xz
++    pushd dracut-$DRACUT_VERSION
++    ./configure
++    make
++    make install
++    popd
++    popd
++fi
++
++PACKAGES=$(pkg-map --element dracut-ramdisk ncat tftp)
++install-packages $DRACUT_NETWORK wget $PACKAGES
+diff --git a/elements/dracut-ramdisk/pkg-map b/elements/dracut-ramdisk/pkg-map
+new file mode 100644
+index 0000000..e3f8316
+--- /dev/null
++++ b/elements/dracut-ramdisk/pkg-map
+@@ -0,0 +1,15 @@
++{
++  "family":{
++    "debian":{
++      "ncat":"netcat-traditional",
++      "tftp":"tftp-hpa"
++    },
++    "redhat":{
++      "ncat":"nmap-ncat"
++    }
++  },
++  "default":{
++    "ncat":"ncat",
++    "tftp":"tftp"
++  }
++}
+\ No newline at end of file
+diff --git a/elements/dracut-ramdisk/post-install.d/99-build-dracut-ramdisk b/elements/dracut-ramdisk/post-install.d/99-build-dracut-ramdisk
+new file mode 100755
+index 0000000..0c5e3fc
+--- /dev/null
++++ b/elements/dracut-ramdisk/post-install.d/99-build-dracut-ramdisk
+@@ -0,0 +1,63 @@
++#!/bin/bash
++
++set -eux
++set -o pipefail
++
++_LIB="/tmp/ramdisk-build"
++
++source "$_LIB/common-defaults"
++source "$_LIB/img-defaults"
++source "$_LIB/ramdisk-defaults"
++
++source "$_LIB/common-functions"
++source "$_LIB/img-functions"
++source "$_LIB/ramdisk-functions"
++
++KERNEL_VERSION="${DIB_KERNEL_VERSION:-$(find_kernel_version)}"
++MODULE_DIR="$MODULE_ROOT/lib/modules/$KERNEL_VERSION"
++FIRMWARE_DIR="$MODULE_ROOT/lib/firmware"
++LIB_UDEV="$LIB_UDEV_ROOT/lib/udev"
++INIT="$_LIB/scripts/init"
++FUNCTIONS_D="$_LIB/scripts/d"
++MODULE="$_LIB/scripts/module"
++# NOTE(bnemec): IMAGE_ELEMENT is normally set in disk-image-create, but we're
++# not using that to build the image here.
++IMAGE_ELEMENT=
++
++mk_build_dir
++mkdir -p "$TMP_BUILD_DIR/mnt"
++export TMP_HOOKS_PATH=/tmp
++export TMP_MOUNT_PATH="$TMP_BUILD_DIR/mnt"
++
++echo "building ramdisk in $TMP_MOUNT_PATH"
++
++populate_init
++SCRIPT_HOME=/tmp/in_target.d/bin TMP_HOOKS_PATH=/tmp/in_target.d run_d ramdisk-install
++MODULE_PATH="/usr/lib/dracut/modules.d"
++cp -r "$MODULE" "$MODULE_PATH/80deploy-ramdisk"
++cp "$TMP_MOUNT_PATH/init" "$MODULE_PATH/80deploy-ramdisk/init.sh"
++
++# Notes on the options passed to Dracut:
++# -N: Do not build a host-specific ramdisk.  We want to be able to run this ramdisk
++#     on as many different machines as possible.
++# --install: A list of the binaries needed by our ramdisk script fragments.
++# --kernel-cmdline: Kernel parameters to pass to the ramdisk.  rd.neednet is required
++#                   to force Dracut to bring up networking even if it isn't passed a
++#                   network target root.  Pre-loading the ahci module is necessary
++#                   on some systems to ensure that SATA disks are recognized.
++# --include: Files from the chroot to include in the ramdisk.
++# --kver: The kernel version to use, as determined above.
++# --add-drivers: Extra kernel modules to include in the ramdisk.
++# -o: Force omission of these dracut modules.  Our scripts are written for bash,
++#     so dash is not desirable, and plymouth was causing some issues on Ubuntu.
++dracut -N \
++    --install 'tail head awk ifconfig cut expr route ping tgtd tgtadm nc wget curl tftp grep' \
++    --kernel-cmdline "rd.shell rd.debug rd.neednet=1 rd.driver.pre=ahci" \
++    --include "$TMP_MOUNT_PATH/init-func" /init-func \
++    --kver "${KERNEL_VERSION}" \
++    --add-drivers "virtio virtio_net virtio_blk" \
++    -o "dash plymouth" \
++    /tmp/ramdisk
++
++cp "/boot/vmlinuz-${KERNEL_VERSION}" /tmp/kernel
++chmod o+r /tmp/kernel
+diff --git a/elements/dracut-ramdisk/source-repository-dracut b/elements/dracut-ramdisk/source-repository-dracut
+new file mode 100644
+index 0000000..d7c1bdc
+--- /dev/null
++++ b/elements/dracut-ramdisk/source-repository-dracut
+@@ -0,0 +1 @@
++dracut file /tmp/dracut.tar.xz https://www.kernel.org/pub/linux/utils/boot/dracut/dracut-$DRACUT_VERSION.tar.xz
+diff --git a/lib/common-functions b/lib/common-functions
+index 6681dc7..f440e5d 100644
+--- a/lib/common-functions
++++ b/lib/common-functions
+@@ -233,7 +233,7 @@ function arg_to_elements() {
+     IMAGE_ELEMENT="base $IMAGE_ELEMENT"
+   fi
+   if [ "$IS_RAMDISK" == "1" ]; then
+-    IMAGE_ELEMENT="ramdisk $IMAGE_ELEMENT"
++    IMAGE_ELEMENT="$RAMDISK_ELEMENT $IMAGE_ELEMENT"
+   fi
+   echo "Building elements: $IMAGE_ELEMENT"
+ 
+diff --git a/lib/ramdisk-defaults b/lib/ramdisk-defaults
+index 893826b..13120f1 100644
+--- a/lib/ramdisk-defaults
++++ b/lib/ramdisk-defaults
+@@ -18,6 +18,7 @@
+ # options for ramdisk-image-create
+ export DIB_NO_TMPFS=${DIB_NO_TMPFS:-1}
+ export DIB_MIN_TMPFS=${DIB_MIN_TMPFS:-1}
++export RAMDISK_ELEMENT=${RAMDISK_ELEMENT:-ramdisk}
+ source $_LIB/common-defaults
+ MODULE_ROOT=${DIB_MODULE_ROOT:-""}
+ LIB_UDEV_ROOT=${DIB_LIB_UDEV_ROOT:-""}
+diff --git a/lib/ramdisk-functions b/lib/ramdisk-functions
+index e41691a..b34e93a 100644
+--- a/lib/ramdisk-functions
++++ b/lib/ramdisk-functions
+@@ -25,7 +25,9 @@ function fullpath() {
+ }
+ 
+ function cleanup () {
+-  unmount_dir "$TMP_BUILD_DIR/mnt"
++  if [ "$RAMDISK_ELEMENT" != "dracut-ramdisk" ]; then
++    unmount_dir "$TMP_BUILD_DIR/mnt"
++  fi
+   if [ -f "$TMP_IMAGE_PATH" ]; then
+     loopdev=`sudo losetup -j "$TMP_IMAGE_PATH" | cut -d: -f1`
+     if [ -n "$loopdev" ]; then
