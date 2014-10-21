@@ -69,6 +69,9 @@ Components of TripleO that are responsible for building disk images.
 %{_datadir}/%{name}/elements
 
 %changelog
+* Tue Oct 21 2014 James Slagle <jslagle@redhat.com> 0.1.34-3
+- Remove requirement on busybox, we use dracut now.
+
 * Mon Oct 20 2014 James Slagle <jslagle@redhat.com> 0.1.34-2
 - Enable dracut deploy ramdisks
 
