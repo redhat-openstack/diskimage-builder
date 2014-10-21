@@ -18,7 +18,6 @@ BuildRequires: python-pbr
 
 Requires: kpartx
 Requires: qemu-img
-Requires: busybox
 Requires: curl
 Requires: python-argparse
 Requires: python-babel
