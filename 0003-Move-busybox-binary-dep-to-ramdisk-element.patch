@@ -1,0 +1,59 @@
+From eacf84e6d979497578ebb919d93f828199a33030 Mon Sep 17 00:00:00 2001
+From: Ben Nemec <bnemec@redhat.com>
+Date: Tue, 21 Oct 2014 16:01:19 -0500
+Subject: [PATCH] Move busybox binary-dep to ramdisk element
+
+Busybox should be installed and managed from the ramdisk element,
+since that is common to all elements that need busybox.  In
+addition, we do not want busybox installed when building Dracut
+ramdisks, so it can't be in the deploy-* elements.
+
+Change-Id: I2656d20b466138f7f6dfcf558ba90c6909151d3c
+---
+ elements/deploy-baremetal/binary-deps.d/deploy                        | 1 -
+ elements/deploy-baremetal/install.d/package-installs-deploy-baremetal | 1 -
+ elements/deploy-ironic/binary-deps.d/deploy-ironic                    | 1 -
+ elements/deploy-ironic/install.d/package-installs-deploy-ironic       | 1 -
+ elements/ramdisk/binary-deps.d/ramdisk                                | 1 +
+ 5 files changed, 1 insertion(+), 4 deletions(-)
+
+diff --git a/elements/deploy-baremetal/binary-deps.d/deploy b/elements/deploy-baremetal/binary-deps.d/deploy
+index 74d8980..8e5be60 100644
+--- a/elements/deploy-baremetal/binary-deps.d/deploy
++++ b/elements/deploy-baremetal/binary-deps.d/deploy
+@@ -1,4 +1,3 @@
+-busybox
+ bash
+ tgtd
+ tgtadm
+diff --git a/elements/deploy-baremetal/install.d/package-installs-deploy-baremetal b/elements/deploy-baremetal/install.d/package-installs-deploy-baremetal
+index a2b9d70..786509c 100644
+--- a/elements/deploy-baremetal/install.d/package-installs-deploy-baremetal
++++ b/elements/deploy-baremetal/install.d/package-installs-deploy-baremetal
+@@ -1,2 +1 @@
+-busybox
+ tgt
+diff --git a/elements/deploy-ironic/binary-deps.d/deploy-ironic b/elements/deploy-ironic/binary-deps.d/deploy-ironic
+index dee62a0..1bb3f38 100644
+--- a/elements/deploy-ironic/binary-deps.d/deploy-ironic
++++ b/elements/deploy-ironic/binary-deps.d/deploy-ironic
+@@ -1,4 +1,3 @@
+-busybox
+ curl
+ tgtadm
+ tgtd
+diff --git a/elements/deploy-ironic/install.d/package-installs-deploy-ironic b/elements/deploy-ironic/install.d/package-installs-deploy-ironic
+index 8948f65..3da7a78 100644
+--- a/elements/deploy-ironic/install.d/package-installs-deploy-ironic
++++ b/elements/deploy-ironic/install.d/package-installs-deploy-ironic
+@@ -1,3 +1,2 @@
+-busybox
+ curl
+ tgt
+diff --git a/elements/ramdisk/binary-deps.d/ramdisk b/elements/ramdisk/binary-deps.d/ramdisk
+index 5d468f9..e56a617 100644
+--- a/elements/ramdisk/binary-deps.d/ramdisk
++++ b/elements/ramdisk/binary-deps.d/ramdisk
+@@ -1 +1,2 @@
+ dhclient
++busybox
