@@ -1,0 +1,24 @@
+From 4a17ac748f636c9f6f87a27800210eb6f1255e0d Mon Sep 17 00:00:00 2001
+From: Ben Nemec <bnemec@redhat.com>
+Date: Thu, 23 Oct 2014 20:02:08 -0500
+Subject: [PATCH] Unset trap before dracut ramdisk build script exits
+
+A similar change was needed in the normal ramdisk element as part
+of ae928057bd2fc2205c91bf052d5503de64f9ea69 to avoid running
+cleanup immediately after the ramdisk build completes.
+
+Change-Id: Ia96e2d8011b88ed96cc6727914c5a5d2dea59757
+---
+ elements/dracut-ramdisk/post-install.d/99-build-dracut-ramdisk | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/elements/dracut-ramdisk/post-install.d/99-build-dracut-ramdisk b/elements/dracut-ramdisk/post-install.d/99-build-dracut-ramdisk
+index 0c5e3fc..01e7930 100755
+--- a/elements/dracut-ramdisk/post-install.d/99-build-dracut-ramdisk
++++ b/elements/dracut-ramdisk/post-install.d/99-build-dracut-ramdisk
+@@ -61,3 +61,5 @@ dracut -N \
+ 
+ cp "/boot/vmlinuz-${KERNEL_VERSION}" /tmp/kernel
+ chmod o+r /tmp/kernel
++# We don't want to run cleanup (set in mk_build_dir above) when this exits
++trap EXIT
