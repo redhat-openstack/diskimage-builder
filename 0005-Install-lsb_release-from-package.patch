@@ -1,0 +1,55 @@
+From d2ce37cdb7709718cf13a87dcbf7352703a46789 Mon Sep 17 00:00:00 2001
+From: Derek Higgins <derekh@redhat.com>
+Date: Mon, 10 Nov 2014 11:18:06 +0000
+Subject: [PATCH] Install lsb_release from package
+
+The URL we were using to download lsb_release from no longer works,
+install from package so this is not affected by disappearing URL's
+in future.
+
+This was originally installed from a URL because the package dependencies
+caused a 87M increase in the size of the base image. For fedora the
+increase is now 27M which is a little more tolerable.
+
+Change-Id: I6e56a4a81786b33c5c6b92df2bd8236cd3f19670
+
+Conflicts:
+	elements/centos7/source-repository-centos7
+	elements/redhat-common/pre-install.d/02-lsb
+---
+ elements/centos7/source-repository-centos7                          | 1 -
+ elements/redhat-common/pre-install.d/02-lsb                         | 6 ------
+ elements/redhat-common/pre-install.d/package-installs-redhat-common | 1 +
+ 3 files changed, 1 insertion(+), 7 deletions(-)
+ delete mode 100644 elements/centos7/source-repository-centos7
+ delete mode 100755 elements/redhat-common/pre-install.d/02-lsb
+
+diff --git a/elements/centos7/source-repository-centos7 b/elements/centos7/source-repository-centos7
+deleted file mode 100644
+index 1d6a0c8..0000000
+--- a/elements/centos7/source-repository-centos7
++++ /dev/null
+@@ -1 +0,0 @@
+-lsb-release file /opt/stack/lsb-release/lsb_release https://bzr.linuxfoundation.org/loggerhead/lsb/devel/si/download/head:/lsb_release-20060624065236-gakl5b7e37gwk5mg-12/lsb_release
+diff --git a/elements/redhat-common/pre-install.d/02-lsb b/elements/redhat-common/pre-install.d/02-lsb
+deleted file mode 100755
+index 91c78d0..0000000
+--- a/elements/redhat-common/pre-install.d/02-lsb
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#!/bin/bash
+-
+-set -eu
+-set -o pipefail
+-
+-install -m 0755 -o root -g root /opt/stack/lsb-release/lsb_release /usr/local/bin
+diff --git a/elements/redhat-common/pre-install.d/package-installs-redhat-common b/elements/redhat-common/pre-install.d/package-installs-redhat-common
+index 51043b1..ab4bad3 100644
+--- a/elements/redhat-common/pre-install.d/package-installs-redhat-common
++++ b/elements/redhat-common/pre-install.d/package-installs-redhat-common
+@@ -2,4 +2,5 @@ gettext
+ -grub2
+ grub2-tools
+ os-prober
++redhat-lsb-core
+ system-logos

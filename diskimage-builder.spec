@@ -1,7 +1,7 @@
 Name:		diskimage-builder
 Summary:	Image building tools for OpenStack
 Version:	0.1.34
-Release:	5%{?dist}
+Release:	6%{?dist}
 License:	ASL 2.0
 Group:		System Environment/Base
 URL:		https://launchpad.net/diskimage-builder
@@ -11,6 +11,7 @@ Patch0001: 0001-svc-map-requires-PyYAML.patch
 Patch0002: 0002-Enable-dracut-deploy-ramdisks.patch
 Patch0003: 0003-Move-busybox-binary-dep-to-ramdisk-element.patch
 Patch0004: 0004-Unset-trap-before-dracut-ramdisk-build-script-exits.patch
+Patch0005: 0005-Install-lsb_release-from-package.patch
 
 BuildArch: noarch
 BuildRequires: python2-devel
@@ -33,6 +34,7 @@ Requires: dib-utils
 %patch0002 -p1
 %patch0003 -p1
 %patch0004 -p1
+%patch0005 -p1
 
 %build
 %{__python} setup.py build
@@ -73,6 +75,9 @@ Components of TripleO that are responsible for building disk images.
 %{_datadir}/%{name}/elements
 
 %changelog
+* Tue Nov 11 2014 Ben Nemec <bnemec@redhat.com> 0.1.34-6
+- Install lsb_release from package
+
 * Thu Oct 23 2014 James Slagle <jslagle@redhat.com> 0.1.34-5
 - Unset trap before dracut ramdisk build script exits
 
