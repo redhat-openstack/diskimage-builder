@@ -1,0 +1,50 @@
+From abb321907b7c0fbf44eb8a826ab0b8ac3b603c0b Mon Sep 17 00:00:00 2001
+From: Ben Nemec <bnemec@redhat.com>
+Date: Wed, 12 Nov 2014 10:26:46 -0600
+Subject: [PATCH] Simplify Dracut cmdline script
+
+We don't actually need a real value for the root kernel param, and
+requiring one causes problems for things like the discovery ramdisk
+that don't pass in a disk= parameter.  Dracut seems to be happy to
+take /dev/zero as the value, so we can just always use that.
+
+Change-Id: Ia724f0214c26aa18c6f8f41f2c48d7f25b52ee6c
+---
+ .../extra-data.d/scripts/module/deploy-cmdline.sh  | 24 ++++------------------
+ 1 file changed, 4 insertions(+), 20 deletions(-)
+
+diff --git a/elements/dracut-ramdisk/extra-data.d/scripts/module/deploy-cmdline.sh b/elements/dracut-ramdisk/extra-data.d/scripts/module/deploy-cmdline.sh
+index 7cd1432..2089f0f 100755
+--- a/elements/dracut-ramdisk/extra-data.d/scripts/module/deploy-cmdline.sh
++++ b/elements/dracut-ramdisk/extra-data.d/scripts/module/deploy-cmdline.sh
+@@ -3,26 +3,10 @@
+ # NOTE(bnemec): Dracut doesn't like it if we enable these
+ # dib-lint: disable=setu sete setpipefail
+ 
+-source /init-func
+-
+-find_target() {
+-    local DISK=$(getarg disk)
+-    local target_disk=
+-    t=0
+-    while ! target_disk=$(find_disk "$DISK"); do
+-        if [ $t -eq 10 ]; then
+-            break
+-        fi
+-        t=$(($t + 1))
+-        sleep 1
+-    done
+-    echo $target_disk
+-}
+-root=$(find_target)
+-
+-if [ -n "$root" ]; then
+-    rootok=1
+-fi
++# We never let Dracut boot off the specified root anyway, so all
++# we need is a value it will accept.
++root=/dev/zero
++rootok=1
+ 
+ # Dracut doesn't correctly parse the ip argument passed to us.
+ # Override /proc/cmdline to rewrite it in a way dracut can grok.
