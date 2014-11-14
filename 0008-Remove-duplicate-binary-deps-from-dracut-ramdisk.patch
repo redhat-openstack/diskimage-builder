@@ -1,0 +1,31 @@
+From 23f48b6c204db11abb21e6220324e7525a5b54a1 Mon Sep 17 00:00:00 2001
+From: Ben Nemec <bnemec@redhat.com>
+Date: Fri, 14 Nov 2014 12:43:49 -0600
+Subject: [PATCH] Remove duplicate binary-deps from dracut-ramdisk
+
+These are already listed in the respective deploy-* elements, and
+if we include them here then they get added to every ramdisk built
+with dracut.  That causes issues for elements that don't need
+something like tgtd because it won't be installed and the
+binary deps script will fail.
+
+Change-Id: Ibdcf7d200d4f7136396b63404cd966f7557043e0
+---
+ elements/dracut-ramdisk/binary-deps.d/dracut-ramdisk | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/elements/dracut-ramdisk/binary-deps.d/dracut-ramdisk b/elements/dracut-ramdisk/binary-deps.d/dracut-ramdisk
+index ecab2d6..03476ce 100644
+--- a/elements/dracut-ramdisk/binary-deps.d/dracut-ramdisk
++++ b/elements/dracut-ramdisk/binary-deps.d/dracut-ramdisk
+@@ -6,10 +6,7 @@ cut
+ expr
+ route
+ ping
+-tgtd
+-tgtadm
+ nc
+ wget
+-curl
+ tftp
+ grep
