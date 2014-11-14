@@ -1,7 +1,7 @@
 Name:		diskimage-builder
 Summary:	Image building tools for OpenStack
 Version:	0.1.34
-Release:	8%{?dist}
+Release:	9%{?dist}
 License:	ASL 2.0
 Group:		System Environment/Base
 URL:		https://launchpad.net/diskimage-builder
@@ -66,6 +66,8 @@ chmod +x %{buildroot}/%{_datadir}/%{name}/elements/dracut-ramdisk/extra-data.d/s
 chmod +x %{buildroot}/%{_datadir}/%{name}/elements/dracut-ramdisk/extra-data.d/scripts/module/module-setup.sh
 chmod +x %{buildroot}/%{_datadir}/%{name}/elements/dracut-ramdisk/install.d/20-install-dracut-deps
 chmod +x %{buildroot}/%{_datadir}/%{name}/elements/dracut-ramdisk/post-install.d/99-build-dracut-ramdisk
+# Patch 0007-Use-binary-deps.d-for-dracut-ramdisks.patch has the same issue
+chmod +x %{buildroot}/%{_datadir}/%{name}/elements/ramdisk-base/post-install.d/01-ensure-binaries
 
 %description
 Components of TripleO that are responsible for building disk images.
@@ -79,6 +81,9 @@ Components of TripleO that are responsible for building disk images.
 %{_datadir}/%{name}/elements
 
 %changelog
+* Fri Nov 14 2014 Ben Nemec <bnemec@redhat.com> 0.1.34-9
+- Fix perms on binary-deps patch
+
 * Fri Nov 14 2014 Ben Nemec <bnemec@redhat.com> 0.1.34-8
 - Use binary-deps.d for dracut ramdisks
 
