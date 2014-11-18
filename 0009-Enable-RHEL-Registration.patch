@@ -1,0 +1,534 @@
+From 8054d05068666957958b1864f7a58d146e5c75a8 Mon Sep 17 00:00:00 2001
+From: Ryan Brady <rbrady@redhat.com>
+Date: Mon, 22 Sep 2014 10:12:09 -0400
+Subject: [PATCH] Enable RHEL Registration
+
+This patch documents the 00-rhsm script as <= RHEL6 as it doesn't
+work with the latest release of Satellite.  The Red Hat Network
+(RHN) method of registration is being phased out in favor of Red
+Hat Customer Portal and Satellite 6.  The subscription-manager
+command line tool is the preferred method of registration.
+
+The registration of RHEL is required to enable repositories for
+software installation during image creation time.
+
+This element provides functionality for registering RHEL images
+during the image build process with diskimage-builder's
+disk-image-create script.  The RHEL image will register itself
+with either the hosted Red Hat Customer Portal or Satellite to
+enable software installation from official repositories. After
+the end of the image creation process, the image will unregister
+itself so an entitlement will not be decremented from the account.
+
+Boot-time registration is supported through metadata.  Please see
+the configuration in the README for more information.
+
+Change-Id: Ia9ef377cc4ed9595633888bfb248a1224e04b542
+---
+ elements/rhel-common/README.md                     | 223 +++++++++++++++++++++
+ elements/rhel-common/finalise.d/99-unregister      |  16 ++
+ .../pre-configure.d/06-rhel-registration           | 119 +++++++++++
+ .../rhel-common/pre-install.d/00-rhel-registration | 102 ++++++++++
+ elements/rhel-common/pre-install.d/00-rhsm         |   4 +-
+ 5 files changed, 463 insertions(+), 1 deletion(-)
+ create mode 100755 elements/rhel-common/finalise.d/99-unregister
+ create mode 100755 elements/rhel-common/os-refresh-config/pre-configure.d/06-rhel-registration
+ create mode 100755 elements/rhel-common/pre-install.d/00-rhel-registration
+
+diff --git a/elements/rhel-common/README.md b/elements/rhel-common/README.md
+index 64eb571..4cdd184 100644
+--- a/elements/rhel-common/README.md
++++ b/elements/rhel-common/README.md
+@@ -1 +1,224 @@
+ This element contains the common installation steps between RHEL os releases.
++
++RHEL Registration
++-----------------
++This element provides functionality for registering RHEL images during the
++image build process with the disk-image-create script from diskimage-builder.
++The RHEL image will register itself with either the hosted Red Hat Customer
++Portal or Satellite to enable software installation from official
++repositories. After the end of the image creation process, the image will
++unregister itself so an entitlement will not be decremented from the account.
++
++IMPORTANT NOTE:
++----------------
++The 00-rhsm script is specific to RHEL6.  If you use the REG_ variables to
++use with RHEL7, you do not need to set any DIB_RHSM variables.  The scripts
++named with "rhel-registration" have not been developed or tested for RHEL6.
++
++Environment Variables For Image Creation
++----------------------------------------
++The following environment variables are used for registering a RHEL instance
++with either the Red Hat Customer Portal or Satellite 6.
++
++#### REG\_ACTIVATION\_KEY
++Attaches existing subscriptions as part of the registration process. The
++subscriptions are pre-assigned by a vendor or by a systems administrator
++using Subscription Asset Manager.
++
++#### REG\_AUTO\_ATTACH
++Automatically attaches the best-matched compatible subscription. This is
++good for automated setup operations, since the system can be configured
++in a single step.
++
++#### REG\_BASE\_URL
++Gives the hostname of the content delivery server to use to receive updates.
++Both Customer Portal Subscription Management and Subscription Asset Manager
++use Red Hat's hosted content delivery services, with the URL
++https://cdn.redhat.com. Since Satellite 6 hosts its own content, the URL
++must be used for systems registered with Satellite 6.
++
++#### REG\_ENVIRONMENT
++Registers the system to an environment within an organization.
++
++#### REG\_FORCE
++Registers the system even if it is already registered. Normally, any register
++operations will fail if the machine is already registered.
++
++#### REG\_HALT\_UNREGISTER
++At the end of the image build process, the element runs a cleanup script that
++will unregister it from the system it registered with.  There are some cases
++when building an image where you may want to stop this from happening so you
++can verify the registration or to build a one off-image where the boot-time
++registration will not be enabled.  Set this value to '1' to stop the
++unregistration process.
++
++#### REG\_MACHINE\_NAME
++Sets the name of the system to be registered. This defaults to be the same as
++the hostname.
++
++#### REG\_METHOD
++Sets the method of registration.  Use "portal" to register a system with the
++Red Hat Customer Portal.  Use "satellite" to register a system with Red
++Hat Satellite 6.
++
++#### REG\_ORG
++Gives the organization to which to join the system.
++
++#### REG\_POOL\_ID
++The pool ID is listed with the product subscription information, which is
++available from running the list subcommand of subscription-manager.
++
++#### REG\_PASSWORD
++Gives the password for the user account.
++
++#### REG\_RELEASE
++Sets the operating system minor release to use for subscriptions for the
++system. Products and updates are limited to that specific minor release
++version. This is used only used with the REG_AUTO_ATTACH option.  Possible
++values for this include 5Server, 5.7, 5.8, 5.9, 5.10, 6.1,...6.6, 7.0.
++It will change over time as new releases come out.  There are also variants
++6Server, 6Client, 6Workstation, 7Server, etc.
++
++#### REG\_REPOS
++A single string representing a list of repository names separated by a
++space.  Each of the repositories in this string are enabled through
++subscription manager.  Once you've attached a subscription, you can
++find available repositories by running subscription-manager repos --list.
++
++#### REG\_SERVER\_URL
++Gives the hostname of the subscription service to use. The default is
++for Customer Portal Subscription Management, subscription.rhn.redhat.com.
++If this option is not used, the system is registered with Customer Portal
++Subscription Management.
++
++#### REG\_SERVICE\_LEVEL
++Sets the service level to use for subscriptions on that machine. This
++is only used with the REG_AUTO_ATTACH option.
++
++#### REG\_USER
++Gives the content server user account name.
++
++#### REG\_TYPE
++Sets what type of consumer is being registered. The default is system, which
++is applicable to both physical systems and virtual guests. Other types include
++hypervisor for virtual hosts, person, domain, rhui, and candlepin for some
++subscription management applications.
++
++Image Build Registration Examples
++------------------------------------
++To register with Satellite 6, a common example would be to set the following
++variables:
++
++REG_SAT_URL='http://my-sat06.server.org'
++REG_ORG='tripleo'
++REG_ENV='Library'
++REG_USER='tripleo'
++REG_PASSWORD='tripleo'
++REG_METHOD=satellite
++
++To register with the Red Hat Customer Portal, a common example would be to
++set the following variables:
++
++REG_REPOS='rhel-7-server-optional-rpms rhel-7-server-extras-rpms'
++REG_AUTO_ATTACH=true
++REG_USER='tripleo'
++REG_PASSWORD='tripleo'
++REG_METHOD=portal
++
++
++Configuration
++-------------
++Heat metadata can be used to configure the rhel-common element.
++
++    rh_registration:
++        activation_key:
++            # Attaches existing subscriptions as part of the registration
++            # process. The subscriptions are pre-assigned by a vendor or by
++            # a systems administrator using Subscription Asset Manager.
++        auto_attach: 'true'
++            # Automatically attaches the best-matched compatible subscription.
++            # This is good for automated setup operations, since the system can
++            # be configured in a single step.
++        base_url:
++            # Gives the hostname of the content delivery server to use to
++            # receive updates.  Both Customer Portal Subscription Management
++            # and Subscription Asset Manager use Red Hat's hosted content
++            # delivery services, with the URL https://cdn.redhat.com. Since
++            # Satellite 6 hosts its own content, the URL must be used for
++            # systems registered with Satellite 6.
++        environment:
++            # Registers the system to an environment within an organization.
++        force:
++            # Registers the system even if it is already registered. Normally,
++            # any register operations will fail if the machine is already
++            # registered.
++        machine_name:
++            # Sets the name of the system to be registered. This defaults to be
++            # the same as the hostname.
++        org:
++            # Gives the organization to which to join the system.
++        password:
++            # Gives the password for the user account.
++        release:
++            # Sets the operating system minor release to use for subscriptions
++            # for the system. Products and updates are limited to that specific
++            # minor release version. This is only used with the auto_attach
++            # option.
++        repos:
++            # A single string representing a list of repository names separated
++            # by a space.  Each of the repositories in this string are enabled
++            # through subscription manager.
++        satellite_url:
++            # The url of the Satellite instance to register with.  Required for
++            # Satellite registration.
++        server_url:
++            # Gives the hostname of the subscription service to use. The default
++            # is for Customer Portal Subscription Management,
++            # subscription.rhn.redhat.com. If this option is not used, the system
++            # is registered with Customer Portal Subscription Management.
++        service_level:
++            # Sets the service level to use for subscriptions on that machine.
++            # This is only used with the auto_attach option.
++        user:
++            # Gives the content server user account name.
++        type:
++            # Sets what type of consumer is being registered. The default is
++            # "system", which is applicable to both physical systems and virtual
++            # guests. Other types include "hypervisor" for virtual hosts,
++            # "person", "domain", "rhui", and "candlepin" for some subscription
++            # management applications.
++        method:
++            # Sets the method of registration.  Use "portal" to register a
++            # system with the Red Hat Customer Portal.  Use "satellite" to
++            # register a system with Red Hat Satellite 6.
++
++Configuration Registration Examples
++------------------------------------
++To register with Satellite 6, a common example would be to use the following
++metadata:
++
++    {
++        "rh_registration":{
++            "satellite_url": "http://my-sat06.server.org",
++            "org": "tripleo",
++            "environment": "Library",
++            "user":"tripleo",
++            "password":"tripleo",
++            "method":"satellite"
++            "repos": "rhel-ha-for-rhel-7-server-rpms"
++        }
++    }
++
++To register with the Red Hat Customer Portal, a common example would be to
++use the following metadata:
++
++    {
++        "rh_registration":{
++            "repos":"rhel-7-server-optional-rpms rhel-7-server-extras-rpms",
++            "auto_attach":true,
++            "user":"tripleo",
++            "password":"tripleo",
++            "method":"portal"
++        }
++    }
++
+diff --git a/elements/rhel-common/finalise.d/99-unregister b/elements/rhel-common/finalise.d/99-unregister
+new file mode 100755
+index 0000000..39c02ad
+--- /dev/null
++++ b/elements/rhel-common/finalise.d/99-unregister
+@@ -0,0 +1,16 @@
++#!/bin/bash
++set -eux
++set -o pipefail
++
++# When building an image with diskimage-builder, you will need to register
++# with either the customer portal or a satellite instance in order to enable
++# repos for software installation.  In most cases, it is desirable to
++# unregister a system when diskimage-builder is completing so the customer
++# entitlements are not decremented.  This option is here for the case when
++# a single image needs to be built and deployed as a single instance or for
++# debugging purposes so you can check the portal or satellite to see what was
++# registered.  Set REG_HALT_UNREGISTER to any non-null value to enable this
++# functionality.
++if [ -z "${REG_HALT_UNREGISTER:-}" ]; then
++    subscription-manager unregister
++fi
+diff --git a/elements/rhel-common/os-refresh-config/pre-configure.d/06-rhel-registration b/elements/rhel-common/os-refresh-config/pre-configure.d/06-rhel-registration
+new file mode 100755
+index 0000000..631f0c6
+--- /dev/null
++++ b/elements/rhel-common/os-refresh-config/pre-configure.d/06-rhel-registration
+@@ -0,0 +1,119 @@
++#!/bin/bash
++set -eux
++set -o pipefail
++
++REG_ACTIVATION_KEY="$(os-apply-config --key rh_registration.activation_key --type raw --key-default '')"
++REG_AUTO_ATTACH="$(os-apply-config --key rh_registration.auto_attach --type raw --key-default 'true')"
++REG_BASE_URL="$(os-apply-config --key rh_registration.base_url --type raw --key-default '')"
++REG_ENVIRONMENT="$(os-apply-config --key rh_registration.environment --type raw --key-default '')"
++REG_FORCE="$(os-apply-config --key rh_registration.force --type raw --key-default '')"
++REG_MACHINE_NAME="$(os-apply-config --key rh_registration.machine_name --type raw --key-default '')"
++REG_ORG="$(os-apply-config --key rh_registration.org --type raw --key-default '')"
++REG_PASSWORD="$(os-apply-config --key rh_registration.password --type raw --key-default '')"
++REG_POOL_ID="$(os-apply-config --key rh_registration.poolid --type raw --key-default '')"
++REG_RELEASE="$(os-apply-config --key rh_registration.release --type raw --key-default '')"
++REG_REPOS="$(os-apply-config --key rh_registration.repos --type raw --key-default '')"
++REG_SAT_URL="$(os-apply-config --key rh_registration.satellite_url --type raw --key-default '')"
++REG_SERVER_URL="$(os-apply-config --key rh_registration.server_url --type raw --key-default '')"
++REG_SERVICE_LEVEL="$(os-apply-config --key rh_registration.service_level --type raw --key-default '')"
++REG_USER="$(os-apply-config --key rh_registration.user --type raw --key-default '')"
++REG_TYPE="$(os-apply-config --key rh_registration.type --type raw --key-default '')"
++REG_METHOD="$(os-apply-config --key rh_registration.method --type raw --key-default '')"
++
++opts=
++attach_opts=
++repos="repos --enable rhel-7-server-rpms"
++satellite_repo="rhel-7-server-rh-common-beta-rpms"
++if [ -n "${REG_AUTO_ATTACH:-}" ]; then
++    opts="$opts --auto-attach"
++
++    if [ -n "${REG_SERVICE_LEVEL:-}" ]; then
++        opts="$opts --servicelevel $REG_SERVICE_LEVEL"
++    fi
++
++    if [ -n "${REG_RELEASE:-}" ]; then
++        opts="$opts --release=$REG_RELEASE"
++    fi
++else
++    if [ -n "${REG_SERVICE_LEVEL:-}" ]; then
++        echo "WARNING: REG_SERVICE_LEVEL set without REG_AUTO_ATTACH."
++    fi
++
++    if [ -n "${REG_RELEASE:-}" ]; then
++        echo "WARNING: REG_RELEASE set without REG_AUTO_ATTACH."
++    fi
++
++    if [ -n "${REG_POOL_ID:-}" ]; then
++        attach_opts="$attach_opts --pool=$REG_POOL_ID"
++    fi
++fi
++
++if [ -n "${REG_BASE_URL:-}" ]; then
++    opts="$opts --baseurl=$REG_BASE_URL"
++fi
++
++if [ -n "${REG_ENVIRONMENT:-}" ]; then
++    opts="$opts --env=$REG_ENVIRONMENT"
++fi
++
++if [ -n "${REG_FORCE:-}" ]; then
++    opts="$opts --force"
++fi
++
++if [ -n "${REG_SERVER_URL:-}" ]; then
++    opts="$opts --serverurl=$REG_SERVER_URL"
++fi
++
++if [ -n "${REG_USER:-}" ]; then
++    opts="$opts --username $REG_USER"
++fi
++
++if [ -n "${REG_PASSWORD:-}" ]; then
++    opts="$opts --password $REG_PASSWORD"
++fi
++
++if [ -n "${REG_MACHINE_NAME:-}" ]; then
++    opts="$opts --name $REG_MACHINE_NAME"
++fi
++
++if [ -n "${REG_ORG:-}" ]; then
++    opts="$opts --org $REG_ORG"
++fi
++case "${REG_METHOD:-}" in
++    portal)
++        if [ -n "${REG_ACTIVATION_KEY:-}" ]; then
++            echo "WARNING: Activation keys are not supported by the customer portal at this time."
++        fi
++
++        if [ -n "${REG_REPOS:-}" ]; then
++            for repo in $REG_REPOS; do
++                repos="$repos --enable $repo"
++            done
++        fi
++
++        subscription-manager register $opts
++        if [ -z "${REG_AUTO_ATTACH:-}" ]; then
++            subscription-manager attach $attach_opts
++        fi
++        subscription-manager $repos
++        ;;
++    satellite)
++        repos="$repos --enable ${satellite_repo}"
++        if [ -n "${REG_REPOS:-}" ]; then
++            for repo in $REG_REPOS; do
++                repos="$repos --enable $repo"
++            done
++        fi
++
++        rpm -Uvh "$REG_SAT_URL/pub/katello-ca-consumer-latest.noarch.rpm" || true
++        subscription-manager register $opts
++        subscription-manager $repos
++        yum install -y katello-agent || true # needed for errata reporting to satellite6
++        katello-package-upload
++        # beta-rpms repo only needed to support the katello-ca rpm above.
++        subscription-manager repos --disable ${satellite_repo}
++        ;;
++    *)
++        echo "WARNING: only 'portal' and 'satellite' are valid values for REG_METHOD."
++        exit 1
++esac
+diff --git a/elements/rhel-common/pre-install.d/00-rhel-registration b/elements/rhel-common/pre-install.d/00-rhel-registration
+new file mode 100755
+index 0000000..ced9529
+--- /dev/null
++++ b/elements/rhel-common/pre-install.d/00-rhel-registration
+@@ -0,0 +1,102 @@
++#!/bin/bash
++set -eux
++set -o pipefail
++
++opts=
++attach_opts=
++repos="repos --enable rhel-7-server-rpms"
++
++if [ -n "${REG_AUTO_ATTACH:-}" ]; then
++    opts="$opts --auto-attach"
++
++    if [ -n "${REG_SERVICE_LEVEL:-}" ]; then
++        opts="$opts --servicelevel $REG_SERVICE_LEVEL"
++    fi
++
++    if [ -n "${REG_RELEASE:-}" ]; then
++        opts="$opts --release=$REG_RELEASE"
++    fi
++else
++    if [ -n "${REG_SERVICE_LEVEL:-}" ]; then
++        echo "WARNING: REG_SERVICE_LEVEL set without REG_AUTO_ATTACH."
++    fi
++
++    if [ -n "${REG_RELEASE:-}" ]; then
++        echo "WARNING: REG_RELEASE set without REG_AUTO_ATTACH."
++    fi
++
++    if [ -n "${REG_POOL_ID:-}" ]; then
++        attach_opts="$attach_opts --pool=$REG_POOL_ID"
++    fi
++fi
++
++
++
++if [ -n "${REG_BASE_URL:-}" ]; then
++    opts="$opts --baseurl=$REG_BASE_URL"
++fi
++
++if [ -n "${REG_ENVIRONMENT:-}" ]; then
++    opts="$opts --env=$REG_ENVIRONMENT"
++fi
++
++if [ -n "${REG_FORCE:-}" ]; then
++    opts="$opts --force"
++fi
++
++if [ -n "${REG_SERVER_URL:-}" ]; then
++    opts="$opts --serverurl=$REG_SERVER_URL"
++fi
++
++if [ -n "${REG_USER:-}" ]; then
++    opts="$opts --username $REG_USER"
++fi
++
++if [ -n "${REG_PASSWORD:-}" ]; then
++    opts="$opts --password $REG_PASSWORD"
++fi
++
++if [ -n "${REG_MACHINE_NAME:-}" ]; then
++    opts="$opts --name $REG_MACHINE_NAME"
++fi
++
++if [ -n "${REG_ORG:-}" ]; then
++    opts="$opts --org $REG_ORG"
++fi
++
++case "${REG_METHOD:-}" in
++    portal)
++        if [ -n "${REG_ACTIVATION_KEY:-}" ]; then
++            echo "WARNING: Activation keys are not supported by the customer portal at this time."
++        fi
++
++        if [ -n "${REG_REPOS:-}" ]; then
++            for repo in $REG_REPOS; do
++                repos="$repos --enable $repo"
++            done
++        fi
++
++        subscription-manager register $opts
++        if [ -z "${REG_AUTO_ATTACH:-}" ]; then
++            subscription-manager attach $attach_opts
++        fi
++        subscription-manager $repos
++        ;;
++    satellite)
++        repos="$repos --enable rhel-7-server-rh-common-beta-rpms"
++        if [ -n "${REG_REPOS:-}" ]; then
++            for repo in $REG_REPOS; do
++                repos="$repos --enable $repo"
++            done
++        fi
++
++        rpm -Uvh "$REG_SAT_URL/pub/katello-ca-consumer-latest.noarch.rpm" || true
++        subscription-manager register $opts
++        subscription-manager $repos
++        # beta-rpms repo only needed to support the katello-ca rpm above.
++        subscription-manager repos --disable rhel-7-server-rh-common-beta-rpms
++        ;;
++    *)
++        echo "WARNING: only 'portal' and 'satellite' are valid values for REG_METHOD."
++        exit 1
++esac
+diff --git a/elements/rhel-common/pre-install.d/00-rhsm b/elements/rhel-common/pre-install.d/00-rhsm
+index 3b2f935..235d583 100755
+--- a/elements/rhel-common/pre-install.d/00-rhsm
++++ b/elements/rhel-common/pre-install.d/00-rhsm
+@@ -1,5 +1,7 @@
+ #!/bin/bash
+-
++# This script is for RHEL6 use only.  For RHEL7, please see the readme for
++# documentation on which scripts are used for registration and the variables
++# needed to enable the registration process.
+ set -eu
+ set -o pipefail
+ 
