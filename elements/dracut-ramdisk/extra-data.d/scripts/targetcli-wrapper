@@ -1,0 +1,12 @@
+#!/usr/bin/python
+
+import rtslib
+
+class MyISCSIFabricModule(rtslib.fabric.ISCSIFabricModule):
+    def __init__(self):
+        super(rtslib.fabric.ISCSIFabricModule, self).__init__('iscsi')
+        self.wwn_types = ('free',)
+rtslib.fabric.fabric_modules['iscsi'] = MyISCSIFabricModule
+
+import targetcli_bin
+targetcli_bin.main()

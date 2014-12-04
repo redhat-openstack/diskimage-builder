@@ -10,3 +10,8 @@ nc
 wget
 tftp
 grep
+targetcli
+
+which
+strace
+ldd

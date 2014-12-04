@@ -21,4 +21,5 @@ if [ 'ubuntu' = "$DISTRO_NAME" ]; then
 fi
 
 PACKAGES=$(pkg-map --element dracut-ramdisk ncat tftp)
-install-packages $DRACUT_NETWORK wget $PACKAGES
+# TODO: strace is just for debugging
+install-packages $DRACUT_NETWORK wget $PACKAGES targetcli strace

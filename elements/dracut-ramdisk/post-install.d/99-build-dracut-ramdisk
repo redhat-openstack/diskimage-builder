@@ -54,8 +54,9 @@ dracut -N \
     --install "$(cat /etc/dib_binary_deps)" \
     --kernel-cmdline "rd.shell rd.debug rd.neednet=1 rd.driver.pre=ahci" \
     --include "$TMP_MOUNT_PATH/init-func" /init-func \
+    --include "$_LIB/scripts/targetcli-wrapper" /targetcli-wrapper \
     --kver "${KERNEL_VERSION}" \
-    --add-drivers "virtio virtio_net virtio_blk" \
+    --add-drivers "virtio virtio_net virtio_blk target_core_mod iscsi_target_mod target_core_iblock target_core_file target_core_pscsi configfs" \
     -o "dash plymouth" \
     /tmp/ramdisk
 

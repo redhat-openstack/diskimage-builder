@@ -12,7 +12,7 @@ rootok=1
 # Override /proc/cmdline to rewrite it in a way dracut can grok.
 sed 's/\(ip=\S\+\)/\1:::off/' /proc/cmdline > /run/cmdline
 # Map the existing "troubleshoot" kernel param to the Dracut equivalent.
-sed -i 's/troubleshoot=/rd.shell=/' /run/cmdline
+#sed -i 's/troubleshoot=/rd.shell=/' /run/cmdline
 mount -n --bind -o ro /run/cmdline /proc/cmdline
 # Force Dracut to re-read the cmdline args
 CMDLINE=
