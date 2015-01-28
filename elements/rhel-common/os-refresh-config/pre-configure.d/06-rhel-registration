@@ -2,6 +2,12 @@
 set -eu
 set -o pipefail
 
+OK=/mnt/state/var/lib/rhsm/rhsm.ok
+
+if [ -e $OK ] ; then
+    exit 0
+fi
+
 REG_ACTIVATION_KEY="$(os-apply-config --key rh_registration.activation_key --type raw --key-default '')"
 REG_AUTO_ATTACH="$(os-apply-config --key rh_registration.auto_attach --type raw --key-default 'true')"
 REG_BASE_URL="$(os-apply-config --key rh_registration.base_url --type raw --key-default '')"
@@ -23,7 +29,7 @@ REG_METHOD="$(os-apply-config --key rh_registration.method --type raw --key-defa
 opts=
 attach_opts=
 repos="repos --enable rhel-7-server-rpms"
-satellite_repo="rhel-7-server-rh-common-beta-rpms"
+satellite_repo="rhel-7-server-rh-common-rpms"
 if [ -n "${REG_AUTO_ATTACH:-}" ]; then
     opts="$opts --auto-attach"
 
@@ -115,7 +121,6 @@ case "${REG_METHOD:-}" in
         subscription-manager $repos
         yum install -y katello-agent || true # needed for errata reporting to satellite6
         katello-package-upload
-        # beta-rpms repo only needed to support the katello-ca rpm above.
         subscription-manager repos --disable ${satellite_repo}
         ;;
     disable)
@@ -125,3 +130,6 @@ case "${REG_METHOD:-}" in
         echo "WARNING: only 'portal', 'satellite', and 'disable' are valid values for REG_METHOD."
         exit 0
 esac
+
+mkdir -p $(dirname $OK)
+touch $OK
